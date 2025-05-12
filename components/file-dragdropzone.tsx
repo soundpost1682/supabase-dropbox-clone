@@ -1,10 +1,12 @@
 'use client'
 
-import { Button } from "@material-tailwind/react"
+
 import { uploadFile } from "actions/storageActions"
 import { queryClient } from "config/ReactQueryClientProvider"
 import { useMutation } from "@tanstack/react-query"
-import { useRef } from "react"
+import { useCallback, useRef } from "react"
+import { useDropzone } from "react-dropzone"
+import { Spinner } from "@material-tailwind/react"
 
 export default function FileDragDropZone(){
   const fileRef = useRef(null)
@@ -17,26 +19,37 @@ export default function FileDragDropZone(){
     }
   })
 
-  return (
-    <form 
-    onSubmit={async (e) => {
-      e.preventDefault()
-      const file = fileRef.current.files?.[0]
-      if (file) {
+  const onDrop = useCallback(async (acceptedFiles)=>{
+      if (acceptedFiles.length >0) {
         const formData = new FormData()
-        formData.append('file', file)
+
+        acceptedFiles.forEach(file => {
+          formData.append(file.name, file)
+        });
+        
         const result = await uploadImageMutation.mutate(formData)
         console.log(result)
       }
-    }}
-    className="w-full py-20 border-4 bordered-dotted border-indigo-700 flex flex-col items-center justify-center">
-      <input ref={fileRef} type="file" className="" />
-      <p>
-        Drag files and drop here or click to upload
-      </p>
-      <Button 
-      loading={uploadImageMutation.isPending}
-      type="submit">Upload this file</Button>
-    </form>
+  }, [])
+  const {getRootProps, getInputProps, isDragActive} = useDropzone({onDrop, multiple : true})
+
+  return (
+    <div 
+    {...getRootProps()}
+    
+    className="w-full py-20 border-4 bordered-dotted border-indigo-700 flex flex-col items-center justify-center cursor-pointer">
+      <input {...getInputProps()} />
+      {
+        uploadImageMutation.isPending ? (
+          <Spinner />
+        ) : (
+          isDragActive ? (
+            <p>Drop the files here</p>
+          ) : (
+            <p>Drag the files here OR click here to upload files</p>
+          )
+        )
+      }
+    </div>
   )
 }
